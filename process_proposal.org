@@ -696,21 +696,24 @@ The following represents a first draft of an annotated technical specification w
 namespace std {
   // exposition-only
   // Command line argument list
-  template<ranges::input_range R>
-  concept process-argument-list =
-    requires convertible_to<ranges::iter_value_t<ranges::iterator_t<R>>, string> ||
-    requires convertible_to<ranges::iter_value_t<ranges::iterator_t<R>>, wstring> ||
-    requires convertible_to<ranges::iter_value_t<ranges::iterator_t<R>>, u8string>;
-
+  template<typename R>
+  concept process_argument_list =
+     (
+        convertible_to<iter_value_t<ranges::iterator_t<R>>, string_view> ||
+        convertible_to<iter_value_t<ranges::iterator_t<R>>, wstring_view> ||
+        convertible_to<iter_value_t<ranges::iterator_t<R>>, u8string_view>
+    );
+    
   // A launcher is an object that has a launch function that takes a path, 
   // arguments and a variadic list of process initializers and returns a process object. 
-  template<class T, process-argument-list Args>
-  concept process_launcher = requires(T launcher, const Args& a) {
-    requires convertible_to<ranges::iter_value_t<ranges::iterator_t<Args>>, string>;
-    // Takes an error_code, so initializers can report internal errors
-    { launcher.set_error(error_code(), "message") } -> void;
-    { launcher.launch(filesystem::path(), a) } -> process;
-  };
+  template<typename T, typename Args = vector<string>>
+  concept process_launcher = 
+    process_argument_list<Args> &&
+    requires(T launcher, Args a, filesystem::path p) {
+            // Takes an error_code, so initializers can report internal errors
+            { launcher.set_error(error_code(), "message") } -> std::same_as<void>;
+            { launcher.launch(p, a) } -> std::same_as<process>;
+    };
 
   // The default process-launcher of the implementation
   class default_process_launcher;
@@ -719,15 +722,13 @@ namespace std {
   // and thus listens to at least one of the hooks of the launcher. 
   // Note that the following example only uses portable hooks, but non portables 
   // might suffice as well
-  template<class Init, process_launcher Launcher = default_process_launcher>
+  template<typename Launcher = default_process_launcher, typename Init = default_process_launcher>
   concept process_initializer =
-       requires(Init initializer, Launcher launcher) 
-       { {initializer.on_setup(launcher)}   -> void; }
-    || requires(Init initializer, Launcher launcher) 
-       { {initializer.on_success(launcher)} -> void; }
-    || requires(Init initializer, Launcher launcher) 
-       { {initializer.on_error(launcher, error_code())} -> void; };
-  }
+    process_launcher<Launcher> &&
+    (   requires(Init initializer, Launcher launcher) { {initializer.on_setup(launcher)}; }
+     || requires(Init initializer, Launcher launcher) { {initializer.on_success(launcher)}; }
+     || requires(Init initializer, Launcher launcher) { {initializer.on_error(launcher, error_code())}; }
+    );
 
   // A pid_type is an identifier for a process, that satisfies StrictTotallyOrdered
   using pid_type = implementation-defined;
