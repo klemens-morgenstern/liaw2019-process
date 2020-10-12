@@ -749,11 +749,11 @@ typedef basic_pstream<char>     opstream;
 typedef basic_pstream<wchar_t> wopstream;
 
 template<class CharT, class Traits>
-struct tuple_size<basic_pipe<Char, Traits>> {constexpr static std::size_t size = 2;};
+struct tuple_size<basic_pstream<Char, Traits>> {constexpr static std::size_t size = 2;};
 
 template<class CharT, class Traits> struct tuple_size<basic_pstream<Char, Traits>> {constexpr static std::size_t size = 2;};
-template<class CharT, class Traits> struct tuple_element<0, basic_pipe<Char, Traits>>  { using type = basic_ipstream <CharT, Traits>; },
-template<class CharT, class Traits> struct tuple_element<1, basic_pipe<Char, Traits>>  { using type = basic_opstream<CharT, Traits>; },
+template<class CharT, class Traits> struct tuple_element<0, basic_pstream<Char, Traits>>  { using type = basic_ipstream <CharT, Traits>; },
+template<class CharT, class Traits> struct tuple_element<1, basic_pstream<Char, Traits>>  { using type = basic_opstream<CharT, Traits>; },
 
 template<std::size_t Index, class CharT, class Traits> auto get(      basic_pstream<Char, Traits> &&);
 template<std::size_t Index, class CharT, class Traits> auto get(const basic_pstream<Char, Traits>  &);
